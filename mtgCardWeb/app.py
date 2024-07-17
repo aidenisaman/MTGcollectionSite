@@ -1,8 +1,71 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
+from sqlalchemy.orm import relationship
+from sqlalchemy import JSON
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Replace with a real secret key in production
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    cards = relationship('Card', backref='user', lazy=True)
+
+class Card(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    card_id = db.Column(db.String(150), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    set_name = db.Column(db.String(150))
+    price = db.Column(db.Float)
+    is_foil = db.Column(db.Boolean, default=False)
+    image_url = db.Column(db.String(500))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists')
+            return redirect(url_for('register'))
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return redirect(url_for('index'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username, password=password).first()
+        if user:
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Invalid credentials')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
 
 def get_card_printings(card_name, card_type=None, card_color=None):
     url = f"https://api.scryfall.com/cards/search"
@@ -62,37 +125,41 @@ def autocomplete():
         return jsonify([])
 
 @app.route('/add_to_collection', methods=['POST'])
+@login_required
 def add_to_collection():
-    card = request.json
-    if 'collection' not in session:
-        session['collection'] = []
-    session['collection'].append(card)
-    session.modified = True
+    card_data = request.json
+    new_card = Card(
+        card_id=card_data['id'],
+        name=card_data['name'],
+        set_name=card_data['set_name'],
+        price=float(card_data['price']) if card_data['price'] not in ['N/A', None, ''] else None,
+        is_foil=card_data['is_foil'],
+        image_url=card_data['image_url'],
+        user_id=current_user.id
+    )
+    db.session.add(new_card)
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/remove_from_collection', methods=['POST'])
+@login_required
 def remove_from_collection():
     card_id = request.json['id']
-    if 'collection' in session:
-        session['collection'] = [card for card in session['collection'] if card['id'] != card_id]
-        session.modified = True
-    return jsonify({'success': True})
+    card = Card.query.filter_by(card_id=card_id, user_id=current_user.id).first()
+    if card:
+        db.session.delete(card)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'message': 'Card not found in collection'})
 
 @app.route('/collection')
+@login_required
 def view_collection():
-    collection = session.get('collection', [])
-    print(collection)  # Debugging: Print collection to verify its structure
+    cards = Card.query.filter_by(user_id=current_user.id).all()
+    total_value = sum(card.price for card in cards if card.price is not None)
+    return render_template('collection.html', collection=cards, total_value=total_value)
 
-    # Validate that each card is a dictionary
-    valid_collection = []
-    for card in collection:
-        if isinstance(card, dict):
-            valid_collection.append(card)
-        else:
-            print(f"Invalid card data: {card}")  # Debugging: Log invalid card data
-
-    total_value = sum(float(card.get('price', '0')) for card in valid_collection if card.get('price') not in ['N/A', None])
-    return render_template('collection.html', collection=valid_collection, total_value=total_value)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

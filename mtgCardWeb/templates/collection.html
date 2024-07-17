@@ -4,33 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Card Collection</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white">
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-4xl font-bold">Your Card Collection</h1>
-            <a href="/" class="text-blue-300 hover:text-blue-100">Back to Search</a>
+            <a href="{{ url_for('index') }}" class="text-blue-300 hover:text-blue-100">Back to Search</a>
         </div>
 
-        <p class="mb-8">Total Collection Value: ${{ "%.2f"|format(total_value) }}</p>
+        <p class="text-xl mb-4">Total Collection Value: <span id="total-value">${{ "%.2f"|format(total_value) }}</span></p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for card in collection %}
-            <div class="bg-gray-800 p-4 rounded-lg">
+            <div class="bg-gray-800 p-4 rounded-lg card-container">
                 <img src="{{ card.image_url }}" alt="{{ card.name }}" class="w-full h-auto mb-4 rounded">
-                <p class="font-bold">{{ card.name }}</p>
+                <p class="font-bold text-lg">{{ card.name }}</p>
                 <p>Set: {{ card.set_name }}</p>
-                <p>Price: ${{ card.price }}</p>
+                <p class="card-price">Price: ${{ "%.2f"|format(card.price) if card.price is not none else 'N/A' }}</p>
                 <p>Foil: {{ "Yes" if card.is_foil else "No" }}</p>
-                <button class="remove-from-collection bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-4" data-card-id="{{ card.id }}">
+                <button class="remove-from-collection bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-2" data-card-id="{{ card.card_id }}">
                     Remove from Collection
                 </button>
             </div>
             {% endfor %}
         </div>
     </div>
+
+    <script>
+        $(document).ready(function() {
+            $('.remove-from-collection').click(function() {
+                var cardId = $(this).data('card-id');
+                var cardElement = $(this).closest('.card-container');
+                
+                $.ajax({
+                    url: '/remove_from_collection',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({id: cardId}),
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Card removed from your collection!', 'success');
+                            cardElement.fadeOut(300, function() {
+                                $(this).remove();
+                                updateTotalValue();
+                            });
+                        } else {
+                            showNotification('Failed to remove card from collection. Please try again.', 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Failed to remove card from collection. Please try again.', 'error');
+                    }
+                });
+            });
+
+            function updateTotalValue() {
+                var total = 0;
+                $('.card-price').each(function() {
+                    var price = parseFloat($(this).text().replace('Price: $', ''));
+                    if (!isNaN(price)) {
+                        total += price;
+                    }
+                });
+                $('#total-value').text('$' + total.toFixed(2));
+            }
+
+            function showNotification(message, type) {
+                var notificationClass = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                var notification = $(`
+                    <div class="fixed top-4 right-4 p-4 rounded-lg text-white ${notificationClass} opacity-0 transition-opacity duration-300">
+                        ${message}
+                    </div>
+                `);
+                $('body').append(notification);
+                setTimeout(() => {
+                    notification.addClass('opacity-100');
+                }, 100);
+                setTimeout(() => {
+                    notification.removeClass('opacity-100');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            }
+        });
+    </script>
 </body>
 </html>

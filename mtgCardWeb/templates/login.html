@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8">Login</h1>
+        <form method="post" action="/login">
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-bold mb-2">Username:</label>
+                <input type="text" id="username" name="username" class="w-full p-2 rounded bg-gray-800 text-white">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="password" name="password" class="w-full p-2 rounded bg-gray-800 text-white">
+            </div>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Login
+            </button>
+        </form>
+    </div>
+</body>
+</html>

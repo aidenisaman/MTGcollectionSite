@@ -1,8 +1,60 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
+
+#The login kinda works but a register/login hyper link needs to be added
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Replace with a real secret key in production
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Use a SQLite database for simplicity
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    collection = db.Column(db.PickleType, default=[])
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists')
+            return redirect(url_for('register'))
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return redirect(url_for('index'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username, password=password).first()
+        if user:
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Invalid credentials')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 def get_card_printings(card_name, card_type=None, card_color=None):
     url = f"https://api.scryfall.com/cards/search"
@@ -62,37 +114,32 @@ def autocomplete():
         return jsonify([])
 
 @app.route('/add_to_collection', methods=['POST'])
+@login_required
 def add_to_collection():
     card = request.json
-    if 'collection' not in session:
-        session['collection'] = []
-    session['collection'].append(card)
-    session.modified = True
+    user = User.query.get(current_user.id)
+    user.collection.append(card)
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/remove_from_collection', methods=['POST'])
+@login_required
 def remove_from_collection():
     card_id = request.json['id']
-    if 'collection' in session:
-        session['collection'] = [card for card in session['collection'] if card['id'] != card_id]
-        session.modified = True
+    user = User.query.get(current_user.id)
+    user.collection = [card for card in user.collection if card['id'] != card_id]
+    db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/collection')
+@login_required
 def view_collection():
-    collection = session.get('collection', [])
-    print(collection)  # Debugging: Print collection to verify its structure
+    user = User.query.get(current_user.id)
+    collection = user.collection
+    total_value = sum(float(card.get('price', '0')) for card in collection if card.get('price') not in ['N/A', None])
+    return render_template('collection.html', collection=collection, total_value=total_value)
 
-    # Validate that each card is a dictionary
-    valid_collection = []
-    for card in collection:
-        if isinstance(card, dict):
-            valid_collection.append(card)
-        else:
-            print(f"Invalid card data: {card}")  # Debugging: Log invalid card data
-
-    total_value = sum(float(card.get('price', '0')) for card in valid_collection if card.get('price') not in ['N/A', None])
-    return render_template('collection.html', collection=valid_collection, total_value=total_value)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

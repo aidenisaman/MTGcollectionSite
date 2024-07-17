@@ -40,7 +40,7 @@ $(document).ready(function() {
                                     <p>Set: ${card.set_name}</p>
                                     <p>Type: ${card.type_line}</p>
                                     <p>Colors: ${card.colors.join(', ')}</p>
-                                    <p>USD: ${formatPrice(card.usd_price)}</p>
+                                    <p>USD: ${formatPrice(card.usd_price)}</p>A
                                     <p>USD Foil: ${formatPrice(card.usd_foil_price)}</p>
                                     <div class="mt-4">
                                         <button class="add-to-collection bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded mr-2" data-card='${JSON.stringify(card)}' data-foil="false">
@@ -81,17 +81,22 @@ $(document).ready(function() {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(card),
-            success: function() {
-                showNotification('Card added to your collection!', 'success');
+            success: function(response) {
+                if (response.success) {
+                    showNotification('Card added to your collection!', 'success');
+                } else {
+                    showNotification('Failed to add card to collection. Please try again.', 'error');
+                }
             },
             error: function() {
                 showNotification('Failed to add card to collection. Please try again.', 'error');
             }
         });
     });
-
     $(document).on('click', '.remove-from-collection', function() {
         var cardId = $(this).data('card-id');
+        var cardElement = $(this).closest('.card-container');
+        
         $.ajax({
             url: '/remove_from_collection',
             method: 'POST',
@@ -99,13 +104,27 @@ $(document).ready(function() {
             data: JSON.stringify({id: cardId}),
             success: function() {
                 showNotification('Card removed from your collection!', 'success');
-                location.reload(); // Reload the page to update the collection view
+                cardElement.fadeOut(300, function() {
+                    $(this).remove();
+                    updateTotalValue();
+                });
             },
             error: function() {
                 showNotification('Failed to remove card from collection. Please try again.', 'error');
             }
         });
     });
+
+    function updateTotalValue() {
+        var total = 0;
+        $('.card-price').each(function() {
+            var price = parseFloat($(this).text().replace('$', ''));
+            if (!isNaN(price)) {
+                total += price;
+            }
+        });
+        $('#total-value').text('$' + total.toFixed(2));
+    }
 
     function formatPrice(price) {
         if (price === 'N/A' || price === null) {

@@ -2,12 +2,12 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
-
-#The login kinda works but a register/login hyper link needs to be added
+from sqlalchemy.orm import relationship
+from sqlalchemy import JSON
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Replace with a real secret key in production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Use a SQLite database for simplicity
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -17,7 +17,17 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    collection = db.Column(db.PickleType, default=[])
+    cards = relationship('Card', backref='user', lazy=True)
+
+class Card(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    card_id = db.Column(db.String(150), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    set_name = db.Column(db.String(150))
+    price = db.Column(db.Float)
+    is_foil = db.Column(db.Boolean, default=False)
+    image_url = db.Column(db.String(500))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -54,6 +64,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
 
 def get_card_printings(card_name, card_type=None, card_color=None):
@@ -116,9 +127,17 @@ def autocomplete():
 @app.route('/add_to_collection', methods=['POST'])
 @login_required
 def add_to_collection():
-    card = request.json
-    user = User.query.get(current_user.id)
-    user.collection.append(card)
+    card_data = request.json
+    new_card = Card(
+        card_id=card_data['id'],
+        name=card_data['name'],
+        set_name=card_data['set_name'],
+        price=float(card_data['price']) if card_data['price'] not in ['N/A', None, ''] else None,
+        is_foil=card_data['is_foil'],
+        image_url=card_data['image_url'],
+        user_id=current_user.id
+    )
+    db.session.add(new_card)
     db.session.commit()
     return jsonify({'success': True})
 
@@ -126,18 +145,19 @@ def add_to_collection():
 @login_required
 def remove_from_collection():
     card_id = request.json['id']
-    user = User.query.get(current_user.id)
-    user.collection = [card for card in user.collection if card['id'] != card_id]
-    db.session.commit()
-    return jsonify({'success': True})
+    card = Card.query.filter_by(card_id=card_id, user_id=current_user.id).first()
+    if card:
+        db.session.delete(card)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'message': 'Card not found in collection'})
 
 @app.route('/collection')
 @login_required
 def view_collection():
-    user = User.query.get(current_user.id)
-    collection = user.collection
-    total_value = sum(float(card.get('price', '0')) for card in collection if card.get('price') not in ['N/A', None])
-    return render_template('collection.html', collection=collection, total_value=total_value)
+    cards = Card.query.filter_by(user_id=current_user.id).all()
+    total_value = sum(card.price for card in cards if card.price is not None)
+    return render_template('collection.html', collection=cards, total_value=total_value)
 
 if __name__ == "__main__":
     with app.app_context():

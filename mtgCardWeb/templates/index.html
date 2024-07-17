@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scryfall Card Search</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8">Scryfall Card Search</h1>
+        
+        <div class="mb-4">
+            <input type="text" id="cardName" placeholder="Enter card name" class="w-full p-2 rounded bg-gray-800 text-white">
+        </div>
+        
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex space-x-4">
+                <select id="cardType" class="p-2 rounded bg-gray-800 text-white">
+                    <option value="">All Types</option>
+                    <option value="creature">Creature</option>
+                    <option value="instant">Instant</option>
+                    <option value="sorcery">Sorcery</option>
+                    <option value="enchantment">Enchantment</option>
+                    <option value="artifact">Artifact</option>
+                    <option value="planeswalker">Planeswalker</option>
+                    <option value="land">Land</option>
+                </select>
+                <select id="cardColor" class="p-2 rounded bg-gray-800 text-white">
+                    <option value="">All Colors</option>
+                    <option value="w">White</option>
+                    <option value="u">Blue</option>
+                    <option value="b">Black</option>
+                    <option value="r">Red</option>
+                    <option value="g">Green</option>
+                    <option value="c">Colorless</option>
+                </select>
+            </div>
+            <button id="searchButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Search
+            </button>
+        </div>
+
+        <div class="flex justify-between items-center mb-8">
+            <button id="viewCollection" class="text-blue-300 hover:text-blue-100" onclick="window.location.href='/collection'">
+                View Collection
+            </button>
+        </div>
+
+        <div id="loading" class="mt-4 hidden">
+            Searching...
+        </div>
+
+        <div id="results" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        </div>
+    </div>
+</body>
+</html>

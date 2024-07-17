@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Card Collection</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold">Your Card Collection</h1>
+            <a href="/" class="text-blue-300 hover:text-blue-100">Back to Search</a>
+        </div>
+
+        <p class="mb-8">Total Collection Value: ${{ "%.2f"|format(total_value) }}</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for card in collection %}
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <img src="{{ card.image_url }}" alt="{{ card.name }}" class="w-full h-auto mb-4 rounded">
+                <p class="font-bold">{{ card.name }}</p>
+                <p>Set: {{ card.set_name }}</p>
+                <p>Price: ${{ card.price }}</p>
+                <p>Foil: {{ "Yes" if card.is_foil else "No" }}</p>
+                <button class="remove-from-collection bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded mt-4" data-card-id="{{ card.id }}">
+                    Remove from Collection
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

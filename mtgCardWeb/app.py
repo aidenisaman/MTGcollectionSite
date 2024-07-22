@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from sqlalchemy.orm import relationship
 from sqlalchemy import JSON
+import re
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Change this to your own secret key
@@ -98,10 +99,13 @@ def get_random_commander():
     response = requests.get(url, params=params)
     if response.status_code == 200:
         card = response.json()
+        # Remove special characters and replace spaces with hyphens
+        clean_name = re.sub(r'[^a-zA-Z0-9\s-]', '', card['name'])
+        clean_name = clean_name.replace(' ', '-').lower()
         return {
             'name': card['name'],
             'image_url': card['image_uris']['normal'] if 'image_uris' in card else card['card_faces'][0]['image_uris']['normal'],
-            'edhrec_url': f"https://edhrec.com/commanders/{card['name'].lower().replace(' ', '-').replace(',', '')}"
+            'edhrec_url': f"https://edhrec.com/commanders/{clean_name}"
         }
     return None
 

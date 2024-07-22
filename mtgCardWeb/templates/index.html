@@ -51,13 +51,13 @@
         </div>
 
         {% if random_commander %}
-        <div id="commanderSuggestion" class="mb-8 bg-gray-800 p-4 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold mb-2">Random Commander Suggestion</h2>
+        <div id="commanderSuggestion" class="mb-8 bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Random Commander Suggestion</h2>
             <div class="flex items-center">
-                <img src="{{ random_commander.image_url }}" alt="{{ random_commander.name }}" class="w-24 h-auto rounded-lg mr-4">
+                <img src="{{ random_commander.image_url }}" alt="{{ random_commander.name }}" class="w-40 h-auto rounded-lg mr-6">
                 <div>
-                    <p class="text-lg mb-2">Try building a deck with <span class="font-bold">{{ random_commander.name }}</span>?</p>
-                    <a href="{{ random_commander.edhrec_url }}" target="_blank" class="bg-purple-500 hover:bg-purple-700 text-white text-sm font-bold py-2 px-3 rounded inline-block">View on EDHREC</a>
+                    <p class="text-xl mb-3">Try building a deck with <span class="font-bold">{{ random_commander.name }}</span>?</p>
+                    <a href="{{ random_commander.edhrec_url }}" target="_blank" class="bg-purple-500 hover:bg-purple-700 text-white text-lg font-bold py-2 px-4 rounded inline-block">View on EDHREC</a>
                 </div>
             </div>
         </div>

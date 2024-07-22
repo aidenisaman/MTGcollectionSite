@@ -19,6 +19,8 @@ $(document).ready(function() {
         if (cardName) {
             $('#loading').show();
             $('#results').empty();
+            // Hide the commander suggestion
+            $('#commanderSuggestion').hide();
             $.ajax({
                 url: '/search',
                 method: 'POST',
@@ -40,7 +42,7 @@ $(document).ready(function() {
                                     <p>Set: ${card.set_name}</p>
                                     <p>Type: ${card.type_line}</p>
                                     <p>Colors: ${card.colors.join(', ')}</p>
-                                    <p>USD: ${formatPrice(card.usd_price)}</p>A
+                                    <p>USD: ${formatPrice(card.usd_price)}</p>
                                     <p>USD Foil: ${formatPrice(card.usd_foil_price)}</p>
                                     <div class="mt-4">
                                         <button class="add-to-collection bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded mr-2" data-card='${JSON.stringify(card)}' data-foil="false">

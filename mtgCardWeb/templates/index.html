@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scryfall Card Search</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Bingus Card Site</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css">
 </head>
 <body class="bg-gray-900 text-white">
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
-            <h1 id="Bingus Binder" class="text-4xl font-bold">Scryfall Card Search</h1>
+            <h1 id="Bingus Binder" class="text-4xl font-bold">Bingus Card Site</h1>
             <div>
                 {% if current_user.is_authenticated %}
                     <span class="mr-4">Welcome, {{ current_user.username }}!</span>
@@ -25,45 +24,53 @@
             </div>
         </div>
 
-        <div class="mb-4">
-            <input type="text" id="cardName" placeholder="Enter card name" class="w-full p-2 rounded bg-gray-800 text-white">
+        <div class="mb-8">
+            <div class="mb-4">
+                <input type="text" id="cardName" placeholder="Card Name" class="p-2 border rounded bg-gray-700 text-white w-full md:w-1/3 mb-2 md:mb-0 md:mr-2">
+                <select id="cardType" class="p-2 border rounded bg-gray-700 text-white w-full md:w-1/4 mb-2 md:mb-0 md:mr-2">
+                    <option value="">All Types</option>
+                    <option value="creature">Creature</option>
+                    <option value="instant">Instant</option>
+                    <option value="sorcery">Sorcery</option>
+                    <option value="enchantment">Enchantment</option>
+                    <option value="artifact">Artifact</option>
+                    <option value="planeswalker">Planeswalker</option>
+                    <option value="land">Land</option>
+                </select>
+                <select id="cardColor" class="p-2 border rounded bg-gray-700 text-white w-full md:w-1/4 mb-2 md:mb-0 md:mr-2">
+                    <option value="">All Colors</option>
+                    <option value="w">White</option>
+                    <option value="u">Blue</option>
+                    <option value="b">Black</option>
+                    <option value="r">Red</option>
+                    <option value="g">Green</option>
+                    <option value="c">Colorless</option>
+                </select>
+                <button id="searchButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full md:w-auto">Search</button>
+            </div>
         </div>
 
-        <div class="flex justify-between items-center mb-8">
-            <div class="flex space-x-4">
-                <select id="cardType" class="p-2 rounded bg-gray-800 text-white">
-                    <option value="">All Types</option>
-                    <option value="Creature">Creature</option>
-                    <option value="Instant">Instant</option>
-                    <option value="Sorcery">Sorcery</option>
-                    <option value="Enchantment">Enchantment</option>
-                    <option value="Artifact">Artifact</option>
-                    <option value="Planeswalker">Planeswalker</option>
-                    <option value="Land">Land</option>
-                </select>
-                <select id="cardColor" class="p-2 rounded bg-gray-800 text-white">
-                    <option value="">All Colors</option>
-                    <option value="W">White</option>
-                    <option value="U">Blue</option>
-                    <option value="B">Black</option>
-                    <option value="R">Red</option>
-                    <option value="G">Green</option>
-                    <option value="C">Colorless</option>
-                </select>
+        {% if random_commander %}
+        <div id="commanderSuggestion" class="mb-8 bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Random Commander Suggestion</h2>
+            <div class="flex items-center">
+                <img src="{{ random_commander.image_url }}" alt="{{ random_commander.name }}" class="w-40 h-auto rounded-lg mr-6">
+                <div>
+                    <p class="text-xl mb-3">Try building a deck with <span class="font-bold">{{ random_commander.name }}</span>?</p>
+                    <a href="{{ random_commander.edhrec_url }}" target="_blank" class="bg-purple-500 hover:bg-purple-700 text-white text-lg font-bold py-2 px-4 rounded inline-block">View on EDHREC</a>
+                </div>
             </div>
-            <button id="searchButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Search</button>
         </div>
+        {% endif %}
 
         <div class="flex justify-between items-center mb-8">
             <a href="{{ url_for('view_collection') }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">View Collection</a>
         </div>
 
-        <div id="loading" class="mt-4 hidden">
-            Searching...
-        </div>
+        <div id="loading" class="mt-4 hidden">Searching...</div>
 
-        <div id="results" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        </div>
+        <div id="results" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
     </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

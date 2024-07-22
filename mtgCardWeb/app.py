@@ -1,12 +1,14 @@
+import random
+import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import requests
 from sqlalchemy.orm import relationship
 from sqlalchemy import JSON
+import re
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with a real secret key in production
+app.secret_key = 'your_secret_key'  # Change this to your own secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -89,9 +91,28 @@ def get_image_url(card):
     else:
         return None
 
+def get_random_commander():
+    url = "https://api.scryfall.com/cards/random"
+    params = {
+        'q': 'is:commander'
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        card = response.json()
+        # Remove special characters and replace spaces with hyphens
+        clean_name = re.sub(r'[^a-zA-Z0-9\s-]', '', card['name'])
+        clean_name = clean_name.replace(' ', '-').lower()
+        return {
+            'name': card['name'],
+            'image_url': card['image_uris']['normal'] if 'image_uris' in card else card['card_faces'][0]['image_uris']['normal'],
+            'edhrec_url': f"https://edhrec.com/commanders/{clean_name}"
+        }
+    return None
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    random_commander = get_random_commander()
+    return render_template('index.html', random_commander=random_commander)
 
 @app.route('/search', methods=['POST'])
 def search():
